@@ -1,0 +1,37 @@
+# Custom configuration variables
+app:
+  base-url: http://localhost  # Base URL without port
+  port: 3001                  # Separate port definition
+keycloak:
+  base-url: http://localhost:8080
+  realm: customer
+auth0:
+  domain: https://dev-qdejy8uzphouw6cj.us.auth0.com
+  client-id: JfT2zq4V575wqYTr8nJljnOLH496kPeC  # Replace with your actual Auth0 client IDauth0:
+
+spring:
+  application:
+    name: keycloak-with-auth0-idp
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak: # <-- This is your registration ID
+            client-id: accounting-app
+            client-secret: VJ10LnMr6RBcVeup50lg26EUHJwPMLIP
+            scope: openid,profile,email,offline_access
+            authorization-grant-type: authorization_code
+            redirect-uri: ${app.base-url}:${app.port}/login/oauth2/code/keycloak # <-- The default redirect URI template in Spring Security is:
+            # {baseUrl}/login/oauth2/code/{registrationId}
+            # Valid redirect URIs in keycloak must be: http://localhost:3001/login/oauth2/code/*
+            client-name: accounting-app
+        provider:
+          keycloak:
+            issuer-uri: ${keycloak.base-url}/realms/${keycloak.realm}
+            authorization-uri: ${keycloak.base-url}/realms/${keycloak.realm}/protocol/openid-connect/auth
+            token-uri: ${keycloak.base-url}/realms/${keycloak.realm}/protocol/openid-connect/token
+            user-info-uri: ${keycloak.base-url}/realms/${keycloak.realm}/protocol/openid-connect/userinfo
+            jwk-set-uri: ${keycloak.base-url}/realms/${keycloak.realm}/protocol/openid-connect/certs
+
+server:
+  port: ${app.port}
