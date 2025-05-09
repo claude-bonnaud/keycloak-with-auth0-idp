@@ -24,6 +24,9 @@ public class SecurityConfig {
     @Value("${app.port}")
     private String appPort;
 
+    @Value("${app.path}")
+    private String contextPath;
+
     @Value("${keycloak.base-url}")
     private String keycloakBaseUrl;
 
@@ -35,20 +38,37 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        String appRedirectUri = appBaseUrl + ":" + appPort;
 
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/tokens").authenticated()
                         .anyRequest().permitAll()
                 )
+                // Add this headers configuration
+                .headers(headers -> headers
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .includeSubDomains(true)
+                                .preload(true)
+                                .maxAgeInSeconds(31536000) // 1 year in seconds
+                        )
+                        // Optional: Add other security headers
+                        .contentSecurityPolicy(csp -> csp
+                                .policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'")
+                        )
+                        .frameOptions(frame -> frame
+                                .sameOrigin()
+                        )
+                )
                 .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/oauth2/authorization/keycloak")
                         .defaultSuccessUrl("/tokens", true)
+                        .redirectionEndpoint()
+                        .baseUri("/login/oauth2/code/keycloak")
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .addLogoutHandler(keycloakLogoutHandler())
-                        .logoutSuccessUrl(appRedirectUri)
+                        .logoutSuccessUrl(contextPath)
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
                         .deleteCookies("JSESSIONID")
@@ -68,7 +88,7 @@ public class SecurityConfig {
                     String logoutUrl = UriComponentsBuilder.fromHttpUrl(keycloakBaseUrl)
                             .path("/realms/{realm}/protocol/openid-connect/logout")
                             .queryParam("id_token_hint", user.getIdToken().getTokenValue())
-                            .queryParam("post_logout_redirect_uri", appBaseUrl + ":" + appPort)
+                            .queryParam("post_logout_redirect_uri", appBaseUrl + ":" + appPort+ contextPath)
                             .queryParam("client_id", clientId)
                             .buildAndExpand(keycloakRealm)
                             .toUriString();

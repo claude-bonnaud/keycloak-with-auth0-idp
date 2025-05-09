@@ -1,7 +1,8 @@
 # Custom configuration variables
 app:
-  base-url: http://localhost  # Base URL without port
-  port: 3001                  # Separate port definition
+  base-url: https://localhost  # Base URL without port
+  port: 8443 # Standard HTTPS port and 3001 for HTTP
+  path: /accounting-software
 keycloak:
   base-url: http://localhost:8080
   realm: customer
@@ -18,10 +19,10 @@ spring:
         registration:
           keycloak: # <-- This is your registration ID
             client-id: accounting-app
-            client-secret: VJ10LnMr6RBcVeup50lg26EUHJwPMLIP
+            client-secret: BTZkfBjSGXmGhqK2Ann8PqMpC1IsUXPy
             scope: openid,profile,email,offline_access
             authorization-grant-type: authorization_code
-            redirect-uri: ${app.base-url}:${app.port}/login/oauth2/code/keycloak # <-- The default redirect URI template in Spring Security is:
+            redirect-uri: ${app.base-url}:${app.port}${app.path}/login/oauth2/code/keycloak # <-- The default redirect URI template in Spring Security is:
             # {baseUrl}/login/oauth2/code/{registrationId}
             # Valid redirect URIs in keycloak must be: http://localhost:3001/login/oauth2/code/*
             client-name: accounting-app
@@ -35,3 +36,11 @@ spring:
 
 server:
   port: ${app.port}
+  ssl:
+    enabled: true
+    key-store: classpath:keystore.p12
+    key-store-password: Password
+    key-store-type: PKCS12
+    key-alias: myapp
+  servlet:
+    context-path: ${app.path}
